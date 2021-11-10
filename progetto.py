@@ -414,7 +414,6 @@ if status==3:
 
     peppe=PCA(n_components=n_comp)
     X_pca = peppe.fit_transform(X)
-    st.write(type(X_pca))
     X_pca = pd.DataFrame(X_pca, columns=[f"PC{i+1}" for i in range(n_comp)])
     st.write(X_pca)
 
