@@ -528,7 +528,7 @@ if status==4:
     bodf=pd.concat([data["City"],X,y], axis=1)
     st.write(bodf)
 
-    rnd_seed = 3 #st.columns(3)[0].number_input("seed generatore casuale",0,100,33,1)
+    rnd_seed = 3#st.columns(3)[0].number_input("seed generatore casuale",0,100,3,1)
     #splitting dataset
     X_train,X_test,y_train,y_test = train_test_split(X, y, test_size=0.25, random_state=rnd_seed)
 
@@ -563,7 +563,18 @@ if status==4:
     score["training"] = BT_model.train_score_
     col1.write(px.line(score, x="x",
                     y=["training","test"]))
-    
+
+    # rng=range(0,150,2)
+    # train_scores, valid_scores = validation_curve( GradientBoostingRegressor(learning_rate=0.05,random_state=34), X, y,
+    #                                                 param_name="n_estimators",
+    #                                                 param_range=rng,
+    #                                                 cv=5)
+    # score=pd.DataFrame()
+    # score["x"]=rng
+    # score["test"] = valid_scores.mean(axis=1)
+    # score["training"] = train_scores.mean(axis=1)
+    # col2.write(px.line(score, x="x",
+    #                 y=["training","test"]))
     Lambda = 0.05
     Niter = 30
 
@@ -586,8 +597,8 @@ if status==4:
     st.write("Il grafico e la tabella sotto riportano il confronto tra valori veri e valori predetti nel validation set")
 
     plot1=pd.DataFrame()
-    #plot1["Comune"]=data.City.iloc[X_test.index]
-    plot1["Comune"]=range(len(y_test))
+    plot1["Comune"]=data.City.iloc[X_test.index]
+    #plot1["Comune"]=range(len(y_test))
     plot1["test set"]=np.array(y_test)
     plot1["predizione"]=np.array(prediction)
     col1,col2 = st.columns(2)
@@ -665,18 +676,25 @@ if status==4:
         In particolare è stata sfruttato l'implementazione epsilon-SVR per cui è necessario fissare un valore per i parametri epsilon e C. 
         Epsilon rappresenta il massimo errore che può commettere l'algoritmo per posizionare un dato nell'iperspazio. 
         C parametrizza la rigidità con cui il modello si può adattare ai dati.\n
-        Utilizzando il kernel rbf dobbiamo fissare un valore anche per gamma.
+        Utilizzando il kernel rbf dobbiamo fissare un valore anche per gamma.\n
+        La calibrazione è effettuata confrontando gli score ottenuti per train set e validaton set a diversi valori di ciascun parametro. 
+        La divisione tra train e test set è effettuata tramite k fold con k=5 per cross validare la stima.
     """)
     
     col1,col2=st.columns(2)
 
     # Validation curve per gamma
     col1.markdown("#### Curva di calibrazione per il parametro gamma:")
-    rng=[0.0001*(1+i) for i in range(0,2000,20)]
-#    train_scores, valid_scores = validation_curve( SVR(C=4, epsilon=0.027), X, y,
-    train_scores, valid_scores = validation_curve( SVR(C=1.7, epsilon=0.0479), X, y,
+    rng=[0.0005*(20+i) for i in range(0,500,10)]
+#    col1.write(rng)
+    train_scores, valid_scores = validation_curve( SVR(C=4, epsilon=0.027), X, y,
+#    train_scores, valid_scores = validation_curve( SVR(C=1.7, epsilon=0.0479), X, y,
                                                     param_name="gamma",
-                                                    param_range=rng)
+                                                    param_range=rng,
+                                                    cv=5)
+#    st.write(np.where(valid_scores.mean(axis=1) == np.amax(valid_scores.mean(axis=1)))[0][0])
+    gamma = rng[np.where(valid_scores.mean(axis=1) == np.amax(valid_scores.mean(axis=1)))[0][0]]
+
     scores=pd.DataFrame()
     scores["gamma"]=rng
     scores["training score"]=train_scores.mean(axis=1)
@@ -685,11 +703,14 @@ if status==4:
 
     # Validation curve per C
     col2.markdown("#### Curva di calibrazione per il parametro C:")
-    rng=[0.1*(1+i) for i in range(0,200,2)]
-#    train_scores, valid_scores = validation_curve( SVR(gamma=0.054, epsilon=0.226), X, y,
-    train_scores, valid_scores = validation_curve( SVR(gamma=0.05, epsilon=0.0479), X, y,
+    rng=[0.1*(1+i) for i in range(0,200,5)]
+    train_scores, valid_scores = validation_curve( SVR(gamma=0.054, epsilon=0.226), X, y,
+#    train_scores, valid_scores = validation_curve( SVR(gamma=0.05, epsilon=0.0479), X, y,
                                                     param_name="C",
-                                                    param_range=rng)
+                                                    param_range=rng,
+                                                    cv=5)
+    C = rng[np.where(valid_scores.mean(axis=1) == np.amax(valid_scores.mean(axis=1)))[0][0]]
+
     scores=pd.DataFrame()
     scores["C"]=rng
     scores["training score"]=train_scores.mean(axis=1)
@@ -699,19 +720,23 @@ if status==4:
     # Validation curve per epsilon
     col1.markdown("#### Curva di calibrazione per il parametro epsilon:")
     rng=[0.001*(1+i) for i in range(0,300,5)]
-#    train_scores, valid_scores = validation_curve( SVR(gamma=0.054,C=4), X, y,
-    train_scores, valid_scores = validation_curve( SVR(gamma=0.05,C=1.7), X, y,
+    train_scores, valid_scores = validation_curve( SVR(gamma=0.054,C=4), X, y,
+#    train_scores, valid_scores = validation_curve( SVR(gamma=0.05,C=1.7), X, y,
                                                     param_name="epsilon",
-                                                    param_range=rng)
+                                                    param_range=rng,
+                                                    cv=5)
+    epsilon = rng[np.where(valid_scores.mean(axis=1) == np.amax(valid_scores.mean(axis=1)))[0][0]]
+
     scores=pd.DataFrame()
     scores["epsilon"]=rng
     scores["training score"]=train_scores.mean(axis=1)
     scores["validation score"]=valid_scores.mean(axis=1)
     col1.write(px.line(scores,x="epsilon",y=["training score","validation score"]))
 
-    gamma=0.045
-    C=4
-    epsilon=0.226
+
+    # gamma=0.045
+    # C=4
+    # epsilon=0.226
 
     #Support Vector Machine Regressor
     #SVR_model = SVR(C=C,gamma=gamma,epsilon=epsilon)
