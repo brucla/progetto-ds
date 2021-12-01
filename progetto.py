@@ -500,14 +500,14 @@ if status==4:
 
     st.write(pd.Series(features,name="X"))
 
-    """
-    Alla luce dello studio effettuato tramite clustering può essere ragionevole escludere i due forti outlier (Giove e Porano) dalla regressione. 
-    Come abbiamo visto prima infatti questi casi specifici si collocano molto distanti rispetto al resto del dataset e potrebbero peggiorare in modo significativo le predizioni del modello che andremo a costruire.
-    """
+    # """
+    # Alla luce dello studio effettuato tramite clustering può essere ragionevole escludere i due forti outlier (Giove e Porano) dalla regressione. 
+    # Come abbiamo visto prima infatti questi casi specifici si collocano molto distanti rispetto al resto del dataset e potrebbero peggiorare in modo significativo le predizioni del modello che andremo a costruire.
+    # """
 
-    if st.checkbox("Escludi outlier"):
-        data = data.drop(70)
-        data = data.drop(35)
+    # if st.checkbox("Escludi outlier"):
+    #     data = data.drop(70)
+    #     data = data.drop(35)
 
     X = data.loc[:,features]
     #y = pd.Series(data.CovidCases_jan_jun_2020,name="y")
