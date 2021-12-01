@@ -9,13 +9,13 @@ from sklearn.linear_model import LinearRegression
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 
-from sklearn.ensemble import AdaBoostRegressor
+#from sklearn.ensemble import AdaBoostRegressor
 from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.tree import DecisionTreeRegressor
+#from sklearn.tree import DecisionTreeRegressor
 from sklearn.svm import SVR
 
 from sklearn.model_selection import train_test_split
-from sklearn.model_selection import KFold
+#from sklearn.model_selection import KFold
 from sklearn.model_selection import LeaveOneOut
 from sklearn.model_selection import validation_curve
 
@@ -23,7 +23,7 @@ from sklearn.model_selection import validation_curve
 
 st.set_page_config(
     page_title="Progetto Data Science",
-    page_icon="🧊",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -37,9 +37,11 @@ with st.sidebar:
     if st.button("Studio preliminare",key="sb_2"): status=2
     if st.button("Clustering",key="sb_3"): status=3
     if st.button("Modellizzazione",key="sb_4"): status=4
+    if st.button("Conclusioni",key="sb_5"): status=5
     b2,b3 = st.columns(2)
-    if b2.button("<<"): status=status-1
-    if b3.button(">>"): status=status+1
+    if b2.button("<<"): status=max(status-1,0)
+    if b3.button(">>"): status=min(status+1,5)
+
 
 ################################################################
 
@@ -50,15 +52,19 @@ st.write("Il seguente report riporta i risultati dello studio di correlazione ef
 st.write("Sono riportati nel dettaglio le singole operazioni di cleaning dei dati, studio preliminare, riduzione della dimensionalità dei dati, clustering e modellizzazione.")
 
 
-b0,bo,b1,b2,b3,b4,b5,b6 = st.columns(8)
+b0,b1,b2,b3,b4,b5,b6 = st.columns(7)
 if b1.button("Pulizia Dati"): status=1
 if b2.button("Studio Preliminare"): status=2
 if b3.button("Clustering"): status=3
 if b4.button("Modellizzazione"): status=4
+if b5.button("Conclusioni"): status=5
 
-if status==0:
-    st.session_state["data"] = pd.read_csv("./data/dataset_exam.csv",index_col=0)
-data=st.session_state["data"]
+st.session_state["status"]=status
+
+# if status==0:
+#     st.session_state["data"] = pd.read_csv("./data/dataset_exam.csv",index_col=0)
+# data=st.session_state["data"]
+data = pd.read_csv("./data/dataset_exam.csv",index_col=0)
 
 with open("./comuni_umbria.geojson") as comuni_file:
     comuni = json.load(comuni_file)
@@ -71,8 +77,8 @@ if status==1:
     
     st.markdown("## I dati")
     """
-    I dati relativi alla diffusione del contagio sono resi pubblici dal Servizio Nazionale della Protezione Civile. I dati sull'inquinamento atmosferico provengono invece da bobo bo.\n
-    Questi sono stati raccolti in un unico file csv fornitomi per il progetto in cui i dati, organizzati per comune, sono stati uniti a informazioni di carattere geografico (latitudine, longitudine, orografia).
+    I dati relativi alla diffusione del contagio, resi pubblici dal Servizio Nazionale della Protezione Civile, sono stati raccolti assieme ai dati demografici e di inquinamento in un unico file csv fornitomi per il progetto.
+    Questi, organizzati per comune, sono stati uniti a informazioni di carattere geografico (latitudine, longitudine, orografia).
     """
     st.write(data)
 
@@ -107,7 +113,7 @@ if status==1:
     data.loc[35,'lat'] = 42.516667
     data.loc[35,'lng'] = 12.333333
 
-    st.session_state["data"]=data
+#    st.session_state["data"]=data
 
 #################################################
 #plots_exp=st.expander(label="",expanded=True)
@@ -163,7 +169,7 @@ if status==2:
     """
     Una semplice regressione lineare può darci qualche prima idea quantitativa della correlazine tra le feature. 
     Il fit è realizzato con il metodo dei minimi quadrati utilizzando Popolazione e Densità come variabili indipendenti (x) e la terza feature scelta dal menu a tendina come variabile dipendente (y).
-    La qualità del fit può essere valutata dallo scarto quadratico medio (MSE) tra i valori veri di y e quelli previsti dal modello alla x corrispondente; 
+    La qualità del fit può essere valutata dall'errore quadratico medio (MSE) tra i valori veri di y e quelli previsti dal modello alla x corrispondente; 
     oppure tramite lo score R² del modello.\n
     L'MSE è sempre positivo e tanto più grande quanto peggiore è il modello. Può essere scomodo confrontare gli MSE ottenuti da set di dati diversi dato che la scala dipende dall'ordine di grandezza della variabile dipendente considerata.
     Per avere degli MSE confrontabili si possono normalizzare i valori y.\n
@@ -179,8 +185,8 @@ if status==2:
         Lin_model.fit(X,Y)
         pred_Y=Lin_model.predict(X)
 
-        col2.write("MSE = **"+str( round(mean_squared_error(pred_Y,Y,squared=False),4) )+"**")
-        col2.markdown("R² = **"+str( round(Lin_model.score(X,Y),4) )+"**")
+        col2.write(f"MSE = **{ round(mean_squared_error(pred_Y,Y),4) }**")
+        col2.markdown(f"R² = **{ round(Lin_model.score(X,Y),4) }**")
 
     """
     Confrontando gli score ottenuti dai fit sulle diverse features si nota una certa correlazione con le variabili epidemiologiche: score >0.8 per contagi e ospedalizzazioni, >0.7 per le terapie intensive. 
@@ -215,10 +221,10 @@ if status==2:
     lin_model.fit(X,y)
     pred_Y=lin_model.predict(X)
 
-    col2.write("MSE = **"+str( round(mean_squared_error(pred_Y,y,squared=False),4) )+"**")
-    col2.markdown("R² = **"+str( round(lin_model.score(X,y),4) )+"**")
-    col2.write("""
-    Confrontando densità di popolazione e contagi emerge una leggerissima tendenza di correlazione (R²=0.2) che fatica però a spiegare la correlazione vista nel grafico precedente di 0.8.
+    col2.write(f"MSE = **{round(mean_squared_error(pred_Y,y),4)}**")
+    col2.markdown(f"R² = **{ round(lin_model.score(X,y),4) }**")
+    col2.write(f"""
+    Confrontando densità di popolazione e contagi emerge una leggerissima tendenza di correlazione (R²={ round(lin_model.score(X,y),4) }) che fatica però a spiegare la correlazione vista nel grafico precedente di 0.8.
     Il numero di contagi dovrebbe perciò dipendere quasi totalmente dal numero di abitanti del comune. 
     """)
 
@@ -238,8 +244,8 @@ if status==2:
     lin_model.fit(X,y)
     pred_Y=lin_model.predict(X)
 
-    col2.write("MSE = **"+str( round(mean_squared_error(pred_Y,y,squared=False),4) )+"**")
-    col2.markdown("R² = **"+str( round(lin_model.score(X,y),4) )+"**")
+    col2.write(f"MSE = **{round(mean_squared_error(pred_Y,y),4)}**")
+    col2.markdown(f"R² = **{round(lin_model.score(X,y),4)}**")
     col2.write("""
     La dipendenza dei parametri di inquinamento dalla densità che sembrava emergere dal grafico iniziale è in realtà praticamente inesistente se non nei pochi comuni più densamente popolati.
     Per il resto dei casi c'è una variabilità che raggiunge anche il 200% tra comuni con la stessa densità. 
@@ -261,10 +267,10 @@ if status==2:
     lin_model.fit(X,y)
     pred_Y=lin_model.predict(X)
 
-    col2.write("MSE = **"+str( round(mean_squared_error(pred_Y,y,squared=False),4) )+"**")
-    col2.markdown("R² = **"+str( round(lin_model.score(X,y),4) )+"**")
-    col2.write("""
-    I parametri epidemiologici e di inquinamento appaiono completamente scorrelati (R²=0.014)
+    col2.write(f"MSE = **{round(mean_squared_error(pred_Y,y),4)}**")
+    col2.markdown(f"R² = **{round(lin_model.score(X,y),4)}**")
+    col2.write(f"""
+    I parametri epidemiologici e di inquinamento appaiono completamente scorrelati (R²={round(lin_model.score(X,y),4)})
     """)
 
     st.markdown("### Mappe")
@@ -305,7 +311,7 @@ if status==2:
                         height=800,width=1000))
 
     
-    st.session_state["data"]=data
+#    st.session_state["data"]=data
     
 #################################################
 #cluster_exp=st.expander(label="",expanded=True)
@@ -417,8 +423,14 @@ if status==3:
     Inoltre è possibile che alcune caratteristiche importanti siano contenute non tanto in un singolo parametro, ma nella combinazione di due o più.
     Può risultare utile per questi motivi andare a effettuare un'operazione di riduzione della dimensionalità del dataset con tecniche come la PCA (Principal Component Analysis).
     \n
-    Se ad esempio fissiamo a tre il numero di componenti principali che vogliamo ottenere, 
-    l'algoritmo ci permette di ottenere per ogni entry del dataset tre valori ottenuti tramite delle combinazioni dei parametri reali che massimizzano l'informazione contenuta in ciascuno.
+    Passando alle componenti principali si può notare come poche componenti sono sufficienti a spiegare la maggior parte della varianza del dataset
+    """
+    peppe=PCA(n_components=10)
+    peppe.fit_transform(cl_data)
+    st.write(pd.Series(peppe.explained_variance_ratio_,name="frazione di varianza spiegata"))
+
+    """
+    Considerando solo le prime 3 componenti principali siamo in grado di spiegare il 77% della varianza di tutti i predittori.
     \n
     I valori che si ottengono nel nostro caso sono:
     """
@@ -429,6 +441,7 @@ if status==3:
     X_pca = peppe.fit_transform(X)
     X_pca = pd.DataFrame(X_pca, columns=[f"PC{i+1}" for i in range(n_comp)])
     st.write(X_pca)
+    #st.write(peppe.components_)
 
     """
     Avendo solo tre componenti principali è ora molto più semplice avere anche una rappresentazione grafica del dataset.
@@ -437,7 +450,7 @@ if status==3:
     clusterize(4, X_pca,draw=0,scatter=1)
 
     """
-    Da questo grafico a dispersione è molto evidente la presenza di due chiari outlier della distribuzione corrispondenti ai comuni di Giove e Porano.
+    Da questo grafico a dispersione è evidente la presenza di due chiari outlier della distribuzione corrispondenti ai comuni di Giove e Porano.
     \n
     Possiamo quindi andare a ripetere il clustering sui nuovi predittori.
     """
@@ -460,8 +473,8 @@ if status==3:
                     labels={"x":"numero cluster","y":"inerzia"}))
 
     
-    clusterize(4, X_pca,draw=0,scatter=0,save=1)
-    st.session_state["data"]=data
+#    clusterize(4, X_pca,draw=0,scatter=0,save=1)
+#    st.session_state["data"]=data
 
 #################################################
 #suplearn_exp=st.expander(label="",expanded=True)
@@ -486,24 +499,18 @@ if status==4:
                 'mean_pm10_ug/m3_median_jan_jun_2020']
 
     st.write(pd.Series(features,name="X"))
-#    st.markdown(f"Predittori = {features}")
 
-    # """
-    # Alla luce dello studio effettuato tramite clustering può essere ragionevole escludere i due forti outlier (Giove e Porano) dalla regressione. 
-    # Come abbiamo visto prima infatti questi casi specifici si collocano molto distanti rispetto al resto del dataset e potrebbero peggiorare in modo significativo le predizioni del modello che andremo a costruire.
-    # """
+    """
+    Alla luce dello studio effettuato tramite clustering può essere ragionevole escludere i due forti outlier (Giove e Porano) dalla regressione. 
+    Come abbiamo visto prima infatti questi casi specifici si collocano molto distanti rispetto al resto del dataset e potrebbero peggiorare in modo significativo le predizioni del modello che andremo a costruire.
+    """
 
-    # if st.checkbox("Escludi outlier"):
-    #     data = data.drop(70)
-    #     data = data.drop(35)
-
-    # cl=st.columns(2)[0].number_input("seleziona cluster: ",0,4,1,1)
-    # data=data.mask(data["clusters"]!=cl)
-    # st.write(data.head())
-    # data=data.dropna()
+    if st.checkbox("Escludi outlier"):
+        data = data.drop(70)
+        data = data.drop(35)
 
     X = data.loc[:,features]
-#    y = (data.CovidCases_jan_jun_2020/data.Population)
+    #y = pd.Series(data.CovidCases_jan_jun_2020,name="y")
     y = pd.Series((data.CovidCases_jan_jun_2020/data.Population),name="y")
 
     """
@@ -516,15 +523,14 @@ if status==4:
     st.write("")
     #normalizzazione predittori
     X=(X-X.mean())/X.std()
-    #y=(y-y.mean())/y.std()
-    y=y/y.max()
+    y=(y-y.mean())/y.std()
 
-#    bodf=pd.concat([data[["City","clusters"]],X,y], axis=1)
     bodf=pd.concat([data["City"],X,y], axis=1)
     st.write(bodf)
 
+    rnd_seed = 3 #st.columns(3)[0].number_input("seed generatore casuale",0,100,33,1)
     #splitting dataset
-    X_train,X_test,y_train,y_test = train_test_split(X, y, test_size=0.25, random_state=3)
+    X_train,X_test,y_train,y_test = train_test_split(X, y, test_size=0.25, random_state=rnd_seed)
 
 #####################################################
     st.markdown("### ++ Boosted Decision Tree ++")
@@ -541,9 +547,8 @@ if status==4:
     col1,col2=st.columns(2)
 
     #Gradient Boosted Decision Tree Regressor
-#    BT_model = GradientBoostingRegressor(learning_rate=0.005,n_estimators=750,subsample=0.75,random_state=33,max_depth=5)
-    BT_model = GradientBoostingRegressor(learning_rate=0.05,n_estimators=100,subsample=0.9,random_state=33)
-#    BT_model.fit(X_train,y_train)
+#    BT_model = GradientBoostingRegressor(learning_rate=0.01,n_estimators=150,subsample=0.9,random_state=33)
+    BT_model = GradientBoostingRegressor(learning_rate=0.05,n_estimators=150,subsample=0.8,random_state=3)
     BT_model.fit(X_train,y_train)
 
     #score training vs test
@@ -553,47 +558,40 @@ if status==4:
                 La suddivisione del data set avviene campionando i dati in modo casuale così da avere due set il più rappresentativi possibile del data set completo.""")
     col1,col2=st.columns(2)
     score=pd.DataFrame()
-    #score["x"]=data.City.iloc[X_train.index]
     score["x"]=range(len(BT_model.train_score_))
     score["test"] = [BT_model.loss_(y_test, y_pred) for y_pred in BT_model.staged_predict(X_test)]
     score["training"] = BT_model.train_score_
     col1.write(px.line(score, x="x",
                     y=["training","test"]))
+    
+    Lambda = 0.05
+    Niter = 30
+
     col2.write("")
     col2.write("")
     col2.write("")
-    col2.write("""
+    col2.write(f"""
         Il grafico riporta l'errore di previsione medio che i tree commettono step di boosting dopo step per il training set e per il validation set.\n
         L'errore associato al training set diventa tanto minore tante più iterazioni del boost vengono effettuate. 
-        Tuttavia l'errore sui dati di validazione smette di diminuire oltre il 28esimo circa. \n
+        Tuttavia l'errore sui dati di validazione smette di diminuire oltre il {Niter}esimo circa. \n
         Per evitare l'overtraining del modello conviene perciò troncare il processo a questo livello.
         """)
-    
-    # #out of box improvement
-    # col2.markdown("#### Out-of-Box improvement:")
-    # col2.write("""Il grafico riporta il miglioramento del modello nel predirre il training set ad ogni step di boosting.""")
-    # col2.write(px.line(x=range(len(BT_model.oob_improvement_)),
-    #                 y=BT_model.oob_improvement_))
 
-#    Lambda = 0.01
-#    Niter = 200
-    Lambda = 0.05
-    Niter = 28
-
-    BT_model = GradientBoostingRegressor(learning_rate=Lambda,n_estimators=Niter,subsample=0.9  ,random_state=33)
+    BT_model = GradientBoostingRegressor(learning_rate=Lambda,n_estimators=Niter,subsample=0.8  ,random_state=33)
     BT_model.fit(X_train,y_train)
     prediction = BT_model.predict(X_test)   
     st.write(""" """)
-    st.markdown(f"Fissando perciò learning rate a {Lambda} e numero di iterazioni a {Niter} otteniamo un errore quadratico medio sul validation set di **{round(mean_squared_error(prediction,y_test),4)}**")
+    st.markdown(f"Fissando il numero di iterazioni a {Niter} otteniamo un errore quadratico medio sul validation set di **{round(mean_squared_error(prediction,y_test),4)}**")
     st.markdown(f"Lo score R² risulta **{round(BT_model.score(X_test,y_test),4)}**")
     st.write("Il grafico e la tabella sotto riportano il confronto tra valori veri e valori predetti nel validation set")
 
     plot1=pd.DataFrame()
-    plot1["x"]=range(len(y_test))
+    #plot1["Comune"]=data.City.iloc[X_test.index]
+    plot1["Comune"]=range(len(y_test))
     plot1["test set"]=np.array(y_test)
     plot1["predizione"]=np.array(prediction)
     col1,col2 = st.columns(2)
-    col1.write(px.line(plot1,x="x", y=["test set","predizione"]))
+    col1.write(px.line(plot1,x="Comune", y=["test set","predizione"]))
     col2.write(" ")
     col2.write(" ")
     col2.write(plot1)
@@ -607,67 +605,76 @@ if status==4:
     st.markdown("""
         Il modo più accurato per stimare la predittività del modello è effettuando una validazione incrociata (*Cross Validation*). 
         In particolare, visto il numero abbastanza limitato di dati, l'approccio migliore è quello della *Leave-One-Out Cross Validation*. \n
-        Questa tecnica consiste nell'effettuare il training del modello su tutti i dati tranne uno, validare la predizione sull'unico dato escluso e poi ripetere la procedura escludendo un dato diverso.\n
-        Possiamo quindi valutare il modello sulla base dell'errore quardatico medio (MSE).
+        Questa tecnica consiste nell'effettuare il training del modello su tutti i dati tranne uno, validare la predizione sull'unico dato escluso e poi ripetere la procedura escludendo un dato diverso ogni volta.\n
+        Possiamo quindi valutare il modello sulla base della media degli errori quadratici medi (MSE).
      """)
-#    if st.checkbox("mostra"):
-    if 1:
-        col1,col2=st.columns(2)
-        BT_model = GradientBoostingRegressor(learning_rate=Lambda,n_estimators=Niter,subsample=0.9,random_state=33)
-        #k=len(y)
-        kf = LeaveOneOut()
-        scarti=[]
-        errs=[]
-        pred=[]
-        test_set=[]
-        for train,test in kf.split(X):
-            BT_model.fit(X.iloc[train],y.iloc[train])
-            prediction = BT_model.predict(X.iloc[test])
 
-            err = mean_squared_error(prediction,y.iloc[test],squared=False) #Qui ho messo la radice
-            errs.append(err)
-            #print(err)
-            scarti.append((prediction[0]-y.iloc[test].tolist()[0]))
-            pred.append(prediction[0])
-            test_set.append(y.iloc[test].tolist()[0])
+    col1,col2=st.columns(2)
+    BT_model = GradientBoostingRegressor(learning_rate=Lambda,n_estimators=Niter,subsample=0.8,random_state=33)
+    #k=len(y)
+    kf = LeaveOneOut()
+    scarti=[]
+    errs=[]
+    pred=[]
+    test_set=[]
+    for train,test in kf.split(X):
+        BT_model.fit(X.iloc[train],y.iloc[train])
+        prediction = BT_model.predict(X.iloc[test])
 
-        scarti_BT = pd.DataFrame()
-        scarti_BT["Comune"]=range(len(test_set))
-        scarti_BT["test set"]=test_set
-        scarti_BT["predizione"]=pred
-        scarti_BT["scarti"]=scarti
-        col1.write(px.line(scarti_BT,
-                        x="Comune",
-                        y=["test set","predizione"],
-                        hover_name=data["City"]
-                        )
-        )
-        errs=np.array(errs)
+        err = mean_squared_error(prediction,y.iloc[test]) 
+        errs.append(err)
+        #print(err)
+        scarti.append((prediction[0]-y.iloc[test].tolist()[0]))
+        pred.append(prediction[0])
+        test_set.append(y.iloc[test].tolist()[0])
 
-        col2.write("")
-        col2.write("")
-        col2.write("")
-        col2.write(f"MSE = **{round(errs.mean(),6)}**")
-        col2.write(f"Varianza del MSE = **{round(errs.std(),6)}**")
+    scarti_BT = pd.DataFrame()
+    scarti_BT["Comune"]=range(len(test_set))
+    scarti_BT["test set"]=test_set
+    scarti_BT["predizione"]=pred
+    scarti_BT["scarti"]=scarti
+    col1.write(px.line(scarti_BT,
+                    x="Comune",
+                    y=["test set","predizione"],
+                    hover_name=data["City"]
+                    )
+    )
+    errs=np.array(errs)
 
+    col2.write("")
+    col2.write("")
+    col2.write("")
+#        col2.write(np.ones(len(errs))-errs)
+    col2.write(f"R² medio = **{round(1-errs.mean(),6)}**")
+    col2.write(f"MSE = **{round(errs.mean(),6)}**")
 
 ##################################################
     st.markdown("### ++ Support Vector Machine ++")
 ##################################################
-    st.write("""
-        Un approccio alternativo per modellizzare i dati è quello di sfruttare una Support Vector Machine Regression. 
+    st.markdown("""
+        Un approccio alternativo per modellizzare i dati è quello di sfruttare una *Support Vector Machine*. 
         Le support vector machine sono algoritmi che permettono di classificare dati attraverso la definizione di ipersuperfici nell'iperspazio dei predittori che separano al meglio le zone con simili valori di y.
-        la complessità di queste ipersuperfici dipende dal kernel scelto per la SVM. Il caso più semplice è quello di kernel lineare che permette di formare solo iperpiani. 
-        Scelte di kernel più flessibili sono ad esempio kernel polinomiale o rbf. Quest'ultimo in particolare è molto potente e permette di modellizzare bene anche distribuzioni relativamente complesse.
+        La complessità di queste ipersuperfici dipende dal kernel scelto per la SVM. Il caso più semplice è quello di kernel lineare che permette di formare solo iperpiani. 
+        Scelte di kernel più flessibili sono ad esempio kernel polinomiale o a base radiale (*rbf*). Quest'ultimo in particolare è molto potente e permette di modellizzare bene anche distribuzioni relativamente complesse.
         A kernel più complessi corrisponde tuttavia anche un maggiore costo computazionale nella fase di training del modello. \n
-        Nel nostro studio applichiamo un SV regressor con kernel rbf allo stesso train set usato per il Boosted Decision Tree corrispondente al 75% del data set completo.
+        Nel nostro studio applichiamo un Support Vector Regressor (*SVR*) con kernel rbf allo stesso train set usato per il Boosted Decision Tree corrispondente al 75% del data set completo.
     """)
+    st.markdown("#### Calibrazione dei parametri:")
+    st.markdown("""
+        Un SVR presenta alcuni parametri liberi che necessitano una calibrazione ottimale.\n
+        In particolare è stata sfruttato l'implementazione epsilon-SVR per cui è necessario fissare un valore per i parametri epsilon e C. 
+        Epsilon rappresenta il massimo errore che può commettere l'algoritmo per posizionare un dato nell'iperspazio. 
+        C parametrizza la rigidità con cui il modello si può adattare ai dati.\n
+        Utilizzando il kernel rbf dobbiamo fissare un valore anche per gamma.
+    """)
+    
     col1,col2=st.columns(2)
 
     # Validation curve per gamma
-    col1.markdown("#### Curva di validazione per il parametro gamma:")
-    rng=[0.001*(1+i) for i in range(0,500,2)]
-    train_scores, valid_scores = validation_curve( SVR(C=2), X, y,#C=2 è il valore che ho usato finora
+    col1.markdown("#### Curva di calibrazione per il parametro gamma:")
+    rng=[0.0001*(1+i) for i in range(0,2000,20)]
+#    train_scores, valid_scores = validation_curve( SVR(C=4, epsilon=0.027), X, y,
+    train_scores, valid_scores = validation_curve( SVR(C=1.7, epsilon=0.0479), X, y,
                                                     param_name="gamma",
                                                     param_range=rng)
     scores=pd.DataFrame()
@@ -677,9 +684,10 @@ if status==4:
     col1.write(px.line(scores,x="gamma",y=["training score","validation score"]))
 
     # Validation curve per C
-    col2.markdown("#### Curva di validazione per il parametro C:")
-    rng=[0.05*(1+i) for i in range(0,100,2)]
-    train_scores, valid_scores = validation_curve( SVR(gamma=0.08), X, y,#0.04
+    col2.markdown("#### Curva di calibrazione per il parametro C:")
+    rng=[0.1*(1+i) for i in range(0,200,2)]
+#    train_scores, valid_scores = validation_curve( SVR(gamma=0.054, epsilon=0.226), X, y,
+    train_scores, valid_scores = validation_curve( SVR(gamma=0.05, epsilon=0.0479), X, y,
                                                     param_name="C",
                                                     param_range=rng)
     scores=pd.DataFrame()
@@ -688,24 +696,40 @@ if status==4:
     scores["validation score"]=valid_scores.mean(axis=1)
     col2.write(px.line(scores,x="C",y=["training score","validation score"]))
 
-    gamma=0.08
-    C=2
+    # Validation curve per epsilon
+    col1.markdown("#### Curva di calibrazione per il parametro epsilon:")
+    rng=[0.001*(1+i) for i in range(0,300,5)]
+#    train_scores, valid_scores = validation_curve( SVR(gamma=0.054,C=4), X, y,
+    train_scores, valid_scores = validation_curve( SVR(gamma=0.05,C=1.7), X, y,
+                                                    param_name="epsilon",
+                                                    param_range=rng)
+    scores=pd.DataFrame()
+    scores["epsilon"]=rng
+    scores["training score"]=train_scores.mean(axis=1)
+    scores["validation score"]=valid_scores.mean(axis=1)
+    col1.write(px.line(scores,x="epsilon",y=["training score","validation score"]))
+
+    gamma=0.045
+    C=4
+    epsilon=0.226
 
     #Support Vector Machine Regressor
-    SVR_model = SVR(C=C,gamma=gamma)
+    #SVR_model = SVR(C=C,gamma=gamma,epsilon=epsilon)
+    SVR_model = SVR()
     SVR_model.fit(X_train,y_train)
 
     prediction = SVR_model.predict(X_test)
-    st.markdown(f"Fissando perciò gamma a {gamma} e C a {C} otteniamo un errore quadratico medio sul validation set di **{round(mean_squared_error(prediction,y_test),4)}**")
+    st.markdown(f"Fissando gamma a {gamma}, C a {C} e epsilon a {epsilon} otteniamo un errore quadratico medio sul validation set di **{round(mean_squared_error(prediction,y_test),4)}**")
     st.markdown(f"Lo score R² risulta **{round(SVR_model.score(X_test,y_test),4)}**")
     st.write("Il grafico e la tabella sotto riportano il confronto tra valori veri e valori predetti nel validation set")
 
-    plot1=pd.DataFrame()
-    plot1["x"]=range(len(y_test))
+    # plot1=pd.DataFrame()
+    # plot1["Comune"]=data.City.iloc[X_test.index]
+    # #plot1["x"]=range(len(y_test))
     plot1["test set"]=np.array(y_test)
     plot1["predizione"]=np.array(prediction)
     col1,col2 = st.columns(2)
-    col1.write(px.line(plot1,x="x",
+    col1.write(px.line(plot1,x="Comune",
                     y=["test set","predizione"]
                     )
             )
@@ -720,7 +744,7 @@ if status==4:
     errs=[]
     pred=[]
     test_set=[]
-    SVR_model = SVR(C=C,gamma=gamma)
+    SVR_model = SVR(C=C,gamma=gamma,epsilon=epsilon)
     for train,test in kf.split(X):
         SVR_model.fit(X.iloc[train],y.iloc[train])
         prediction = SVR_model.predict(X.iloc[test])
@@ -748,11 +772,109 @@ if status==4:
     col2.write("")
     col2.write("")
     col2.write("")
+#    col2.write(np.ones(len(errs))-errs)
+    col2.write(f"R² medio = **{round(1-errs.mean(),6)}**")
     col2.write(f"MSE = **{round(errs.mean(),6)}**")
-    col2.write(f"Varianza del MSE = **{round(errs.std(),6)}**")
-    
-    # col2.write(f"Mean Squared Error on predictions through the LOO validation: **{round(errs.mean(),6)}**")
-    # col2.write(f"Median Squared Error on predictions through the LOO validation: **{round(np.median(errs),6)}**")
-    # col2.write(f"Variance of Mean Squared Error on predictions through the LOO validation: **{round(errs.std(),6)}**")
 
-st.session_state["status"]=status
+    if 0:
+    ##################################################
+        st.markdown("### Fit su contagi totali")
+    ##################################################
+        st.markdown("""
+            Secondo me è interessante confrontare questi risultati con quelli che si ottengono fittando i dati dei contagi totali.
+        """)
+        y = pd.Series(data.CovidCases_jan_jun_2020,name="y")
+        y=(y-y.mean())/y.std()
+        
+        col1,col2=st.columns(2)
+        
+        BT_model = GradientBoostingRegressor(learning_rate=Lambda,n_estimators=Niter,subsample=0.8,random_state=33)
+        kf = LeaveOneOut()
+        pred=[]
+        test_set=[]
+        for train,test in kf.split(X):
+            BT_model.fit(X.iloc[train],y.iloc[train])
+            prediction = BT_model.predict(X.iloc[test])
+
+            pred.append(prediction[0])
+            test_set.append(y.iloc[test].tolist()[0])
+
+        LOOCV_BT = pd.DataFrame()
+        LOOCV_BT["Comune"]=range(len(test_set))
+        LOOCV_BT["test set"]=test_set
+        LOOCV_BT["predizione"]=pred
+        col1.write(px.line(LOOCV_BT,
+                        x="Comune",
+                        y=["test set","predizione"],
+                        hover_name=data["City"]
+                        )
+        )
+        errs=np.square(np.array(pred)-np.array(test_set))
+
+        col1.write(f"R² medio = **{round(1-errs.mean(),6)}**")
+        col1.write(f"MSE = **{round(errs.mean(),6)}**")
+
+        gamma=0.05
+        C=1.7
+        epsilon=0.0479
+
+        SVR_model = SVR(C=C,gamma=gamma,epsilon=epsilon)
+        kf = LeaveOneOut()
+        pred=[]
+        test_set=[]
+        for train,test in kf.split(X):
+            SVR_model.fit(X.iloc[train],y.iloc[train])
+            prediction = SVR_model.predict(X.iloc[test])
+
+            pred.append(prediction[0])
+            test_set.append(y.iloc[test].tolist()[0])
+
+        LOOCV_SVR = pd.DataFrame()
+        LOOCV_SVR["Comune"]=range(len(test_set))
+        LOOCV_SVR["test set"]=test_set
+        LOOCV_SVR["predizione"]=pred
+        col2.write(px.line(LOOCV_SVR,
+                        x="Comune",
+                        y=["test set","predizione"],
+                        hover_name=data["City"]
+                        )
+        )
+        errs=np.square(np.array(pred)-np.array(test_set))
+
+        col2.write(f"R² medio = **{round(1-errs.mean(),6)}**")
+        col2.write(f"MSE = **{round(errs.mean(),6)}**")
+
+#################################################
+#   CONCLUSIONI
+#################################################
+if status==5:
+    st.markdown("## Conclusioni")
+
+    st.write(""" 
+        Analizzando i risultati ottenuti dai vari strumenti utilizati durante l'analisi emerge in maniera evidente come l'unico parametro che mostra una forte correlazione con il numero totale di contagi in un certo comune sia la popolazione del comune stesso.
+        Basta una regressione lineare per ottenere infatti uno score R² > 0.8 (valore non cross-validato). 
+        Altri tentativi di evidenziare correlazioni lineari tra i parametri non hanno fornito risultati rilevanti. Sembra poter esistere una leggera dipendenza tra contagi e densità, ma questa non supera un R² di  circa 0.2.
+        Stesso dicasi per una certa relazione tra densità e inquinamento. Tuttavia anche questa, soprattutto per la popolazione di comuni a bassa densità è estremamente variabile e perciò molto poco significativa.\n
+        \n
+        Il clustering unsupervised ha evidenziato la presenza di alcuni forti outlier tra i dati. In particolare i comuni di Giove e Porano hanno avuto un numero di contagi estremamente alto rispetto alla loro popolazione.
+        Al di fuori di questo esempio non è presente una forte clusterizzazione dei dati. Anche in seguito alla PCA infatti l'inerzia del clustering evolve in modo molto liscio all'aumentare del numero di cluster utilizzato.
+        È interessante notare come l'algoritmo di clustering, avendo accesso solo a caratteristiche epidemiologiche e di inquinamento, tenda ad organizzare i comuni secondo categorie che possono essere intuitivamente interpretate secondo caratteristiche geografiche e demografiche.
+        In particolare è ricorrente la suddivisione tra grandi città, comuni medio-piccoli, comuni dell'Appennino, outlier nei contagi. 
+        \n
+        Il tentativo di modellizzare la densità di contagi sulla base dei dati geografici e di inquinamento ha fornito con entrambi i tipi di modello risultati piuttosto fallimentari.
+        Dalla leave one out cross validation si ottiene per entrambi modelli uno score R² medio praticamente nullo. 
+        Entrambi i modelli in seguito al training producono funzioni all'incirca costanti che non riescono perciò a spiegare la variabilità della densità di contagio.
+        \n
+        Sebbene poteva sembrare utile escludere gli outlier del dataset dallo studio per tentare di avere dati più in accordo tra loro i risultati non migliorano in alcun modo significativo.
+        \n
+        Va ammesso che i risultati ottenuti sono fortemente influenzati dalla bassa statistica di dati a disposizione per lo studio. 
+        Soprattuto la fase di supervised learning avrebbe sicuramente giovato da un dataset più ampio sia per il training dei modelli che per la successiva validazione.
+        Inoltre il periodo temporale preso a riferimento (gennaio-giugno 2020) ha visto in Umbria una diffusione ancora molto limitata della pandemia. 
+        L'isolamento totale della popolazione ha infatti bloccato quasi del tutto la diffusione in una fase molto precoce rispetto ad altre regioni. 
+        Questo ha fatto sì che molte zone potenzialmente fragili non siano state raggiunte affatto dalla pandemia.
+        Sarebbe perciò interessante ripetere l'analisi con dati aggiornati che potrebbero rendere più evidente l'eventuale effetto di fattori ambientali sulla contagiosità o la mortalità del virus.
+     """)
+
+#   \n
+#   Le cose sono diverse se invece si considera come y i contagi totali nel comune. In questo caso infatti si ottiene dalla cross validation un R² medio di 0.3 per il SVR e 0.2 per il BDT.
+        
